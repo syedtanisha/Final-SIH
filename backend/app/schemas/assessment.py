@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Optional
 from datetime import datetime
 
@@ -85,8 +85,7 @@ class QuizQuestionOut(BaseModel):
     generation_method: Optional[str] = "DETERMINISTIC_FALLBACK"
     competency_mapping_method: Optional[str] = "PLATFORM_HEURISTIC"
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class QuizQuestionDetailOut(QuizQuestionOut):
     correct_option: str
@@ -105,8 +104,7 @@ class QuizOut(BaseModel):
     created_at: datetime
     questions: List[QuizQuestionOut]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class QuizAnswerSubmit(BaseModel):
     question_id: int
@@ -171,8 +169,7 @@ class DocumentOut(BaseModel):
     mapping_method: Optional[str] = "PLATFORM_HEURISTIC"
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ContentStatusOut(BaseModel):
     document_id: int
@@ -211,8 +208,7 @@ class ProgressEventOut(BaseModel):
     delta: float
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CompetencyProgressCard(BaseModel):
     competency_id: int

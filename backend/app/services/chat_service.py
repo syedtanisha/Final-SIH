@@ -1,7 +1,7 @@
 import json
 import uuid
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
@@ -22,9 +22,9 @@ def create_chat_session(user_id: int, title: Optional[str], db: Session) -> Chat
         user_id=user_id,
         title=session_title,
         status="active",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
-        last_message_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        last_message_at=datetime.now(timezone.utc).replace(tzinfo=None)
     )
     db.add(session)
     db.commit()
@@ -74,7 +74,7 @@ async def process_chat_message(
         user_id=user_id,
         role="USER",
         content=clean_msg,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None)
     )
     db.add(user_msg_rec)
     db.commit()
@@ -180,12 +180,12 @@ async def process_chat_message(
         retrieval_used=retrieval_used,
         retrieved_chunk_ids=json.dumps(retrieved_sources_metadata) if retrieved_sources_metadata else None,
         competency_context_used=comp_ctx_used,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None)
     )
     db.add(assistant_msg_rec)
 
-    session.last_message_at = datetime.utcnow()
-    session.updated_at = datetime.utcnow()
+    session.last_message_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    session.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
     db.refresh(assistant_msg_rec)
 

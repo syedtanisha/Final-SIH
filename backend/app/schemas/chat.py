@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
@@ -23,8 +23,7 @@ class ChatMessageOut(BaseModel):
     competency_context_used: bool = False
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ChatSessionOut(BaseModel):
     session_id: str
@@ -34,8 +33,7 @@ class ChatSessionOut(BaseModel):
     last_message_at: datetime
     message_count: int = 0
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ChatSessionDetailOut(BaseModel):
     session_id: str
@@ -45,8 +43,7 @@ class ChatSessionDetailOut(BaseModel):
     last_message_at: datetime
     messages: List[ChatMessageOut]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ChatMessageSubmitReq(BaseModel):
     message: str = Field(..., min_length=1, max_length=10000, description="User question or query for the AI virtual assistant.")

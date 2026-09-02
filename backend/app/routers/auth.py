@@ -34,31 +34,24 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     # Automatically initialize baseline competencies if needed
     return user_obj
 
-@router.post("/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    username = form_data.username.lower().strip()
+def _authenticate_user(username_raw: str, password_raw: str, db: Session) -> Token:
+    username = username_raw.lower().strip()
     user = db.query(User).filter(User.email == username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    if not user or not verify_password(password_raw, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email credentials or password."
         )
-
     access_token = create_access_token(data={"sub": str(user.id)})
     return Token(access_token=access_token, token_type="Bearer", user=UserOut.model_validate(user))
+
+@router.post("/login", response_model=Token)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    return _authenticate_user(form_data.username, form_data.password, db)
 
 @router.post("/login/json", response_model=Token)
 def login_json(login_data: UserLogin, db: Session = Depends(get_db)):
-    username = login_data.username.lower().strip()
-    user = db.query(User).filter(User.email == username).first()
-    if not user or not verify_password(login_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email credentials or password."
-        )
-
-    access_token = create_access_token(data={"sub": str(user.id)})
-    return Token(access_token=access_token, token_type="Bearer", user=UserOut.model_validate(user))
+    return _authenticate_user(login_data.username, login_data.password, db)
 
 @router.get("/me", response_model=UserOut)
 def get_me(current_user: User = Depends(get_current_user)):

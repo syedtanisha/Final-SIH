@@ -310,7 +310,7 @@ def analyze_competency_gaps(user_id: int, db: Session) -> CompetencyGapAnalysisO
     else:
         primary_domain = "Survey Operations"
 
-    active_gaps = [g.dict() for g in gap_items if g.gap > 0]
+    active_gaps = [g.model_dump() if hasattr(g, 'model_dump') else g.dict() for g in gap_items if g.gap > 0]
     ai_summary = generate_gap_diagnosis(
         officer_name=user.full_name if user else "Officer",
         designation=user.designation if user else "Statistical Officer",

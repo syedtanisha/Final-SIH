@@ -38,10 +38,10 @@ export const progressApi = {
 };
 
 export const finalInterviewApi = {
-  getReadiness: () => client.get('/assessments/final-interview/readiness').catch(() => client.get('/final-interview/readiness')),
-  generateQuestions: () => client.post('/assessments/final-interview/questions', {}).catch(() => client.get('/assessments/final-interview/questions')).catch(() => client.post('/final-interview/questions', {})).catch(() => client.get('/final-interview/questions')),
-  evaluateAnswer: (data) => client.post('/assessments/final-interview/evaluate-answer', data).catch(() => client.post('/final-interview/evaluate-answer', data)),
-  generateReport: (data) => client.post('/assessments/final-interview/generate-report', data).catch(() => client.post('/assessments/final-interview/report', data)).catch(() => client.post('/final-interview/report', data)),
+  getReadiness: () => client.get('/assessments/final-interview/readiness'),
+  generateQuestions: () => client.post('/assessments/final-interview/questions', {}),
+  evaluateAnswer: (data) => client.post('/assessments/final-interview/evaluate-answer', data),
+  generateReport: (data) => client.post('/assessments/final-interview/generate-report', data),
 };
 
 export const adminApi = {

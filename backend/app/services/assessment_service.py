@@ -1,7 +1,7 @@
 import io
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import UploadFile, HTTPException, status
 from pypdf import PdfReader
 import docx
@@ -221,7 +221,7 @@ async def get_baseline_assessment_data(
         if user and db:
             from ..models.models import BaselineAssignment
             new_assignment = BaselineAssignment(
-                assignment_id=f"mospi-assign-{user.id}-{int(datetime.utcnow().timestamp())}",
+                assignment_id=f"mospi-assign-{user.id}-{int(datetime.now(timezone.utc).replace(tzinfo=None).timestamp())}",
                 user_id=user.id,
                 designation=desig_title,
                 department=div_title,
@@ -394,13 +394,13 @@ def evaluate_baseline_submission(user_id: int, submission: BaselineAssessmentSub
                     competency_id=comp_obj.id,
                     current_level=score,
                     assessment_source="baseline_assessment",
-                    last_assessed_at=datetime.utcnow()
+                    last_assessed_at=datetime.now(timezone.utc).replace(tzinfo=None)
                 )
                 db.add(uc)
             else:
                 uc.current_level = score
                 uc.assessment_source = "baseline_assessment"
-                uc.last_assessed_at = datetime.utcnow()
+                uc.last_assessed_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
             hist = LearningProgressHistory(
                 user_id=user_id,
@@ -409,13 +409,13 @@ def evaluate_baseline_submission(user_id: int, submission: BaselineAssessmentSub
                 previous_score=0.0,
                 new_score=score,
                 delta=score,
-                created_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc).replace(tzinfo=None)
             )
             db.add(hist)
 
     if assignment:
         assignment.status = "submitted"
-        assignment.submitted_at = datetime.utcnow()
+        assignment.submitted_at = datetime.now(timezone.utc).replace(tzinfo=None)
         assignment.score = overall_score
 
     db.commit()
@@ -692,7 +692,7 @@ async def evaluate_quiz_submission(
         status="EVALUATED",
         feedback_method="Deterministic Pedagogical Feedback",
         evidence_key=f"quiz-attempt-{quiz_id}-user-{user_id}",
-        completed_at=datetime.utcnow()
+        completed_at=datetime.now(timezone.utc).replace(tzinfo=None)
     )
     db.add(attempt_rec)
     db.flush()

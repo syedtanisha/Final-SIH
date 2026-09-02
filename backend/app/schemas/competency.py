@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 
@@ -17,8 +17,7 @@ class CompetencyOut(CompetencyBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserCompetencyDetail(BaseModel):
     competency_id: int
@@ -89,8 +88,7 @@ class LearningResourceOut(BaseModel):
     verification_level: Optional[str] = "PORTAL_VERIFIED"
     mapping_provenance: Optional[str] = "Platform Curated Competency Mapping"
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class RecommendationItem(BaseModel):
     resource: LearningResourceOut
@@ -147,8 +145,7 @@ class OfficialSourceOut(BaseModel):
     enabled: bool
     last_checked_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class RefreshSourcesRequest(BaseModel):
     source_ids: Optional[List[str]] = None
@@ -174,8 +171,7 @@ class ResourceProgressOut(BaseModel):
     completed_at: Optional[datetime] = None
     last_accessed_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ResourceProgressUpdateReq(BaseModel):
     progress_percentage: float

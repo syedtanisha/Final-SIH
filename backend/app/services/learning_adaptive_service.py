@@ -1,6 +1,6 @@
 import logging
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from ..models.models import (
@@ -75,7 +75,7 @@ def process_learning_evidence(
             user_id=user_id,
             competency_id=competency_id,
             current_level=0.0,
-            last_assessed_at=datetime.utcnow(),
+            last_assessed_at=datetime.now(timezone.utc).replace(tzinfo=None),
             assessment_source=evidence_type
         )
         db.add(user_comp)
@@ -110,7 +110,7 @@ def process_learning_evidence(
 
     # 4. Update User Competency State
     user_comp.current_level = new_score
-    user_comp.last_assessed_at = datetime.utcnow()
+    user_comp.last_assessed_at = datetime.now(timezone.utc).replace(tzinfo=None)
     user_comp.assessment_source = evidence_type
 
     # 5. Persist Auditable History Record
@@ -122,7 +122,7 @@ def process_learning_evidence(
         new_score=new_score,
         delta=delta,
         evidence_key=evidence_key,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None)
     )
     db.add(history_entry)
     db.commit()
@@ -150,14 +150,14 @@ def start_resource_progress(db: Session, user_id: int, resource_id: int) -> User
             resource_id=resource_id,
             status="IN_PROGRESS",
             progress_percentage=10.0,
-            started_at=datetime.utcnow(),
-            last_accessed_at=datetime.utcnow()
+            started_at=datetime.now(timezone.utc).replace(tzinfo=None),
+            last_accessed_at=datetime.now(timezone.utc).replace(tzinfo=None)
         )
         db.add(progress)
     else:
         if progress.status == "NOT_STARTED":
             progress.status = "IN_PROGRESS"
-        progress.last_accessed_at = datetime.utcnow()
+        progress.last_accessed_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     db.commit()
     db.refresh(progress)
@@ -173,7 +173,7 @@ def update_resource_progress(
     progress = start_resource_progress(db, user_id, resource_id)
     progress.progress_percentage = min(100.0, max(0.0, progress_percentage))
     progress.time_spent_mins += time_spent_mins
-    progress.last_accessed_at = datetime.utcnow()
+    progress.last_accessed_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     if progress.progress_percentage >= 100.0 and progress.status != "COMPLETED":
         return complete_resource_progress(db, user_id, resource_id)["progress"]
@@ -196,14 +196,14 @@ def complete_resource_progress(db: Session, user_id: int, resource_id: int) -> D
         progress = UserResourceProgress(
             user_id=user_id,
             resource_id=resource_id,
-            started_at=datetime.utcnow()
+            started_at=datetime.now(timezone.utc).replace(tzinfo=None)
         )
         db.add(progress)
 
     progress.status = "COMPLETED"
     progress.progress_percentage = 100.0
-    progress.completed_at = datetime.utcnow()
-    progress.last_accessed_at = datetime.utcnow()
+    progress.completed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    progress.last_accessed_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     evidence_key = f"res-complete-{user_id}-{resource_id}"
     results = []

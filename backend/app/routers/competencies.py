@@ -67,32 +67,57 @@ def get_all_resources(
             query = query.filter(LearningResource.source.ilike(f"%{source}%"))
     resources = query.all()
 
+def _build_learning_resource_out(r: LearningResource) -> LearningResourceOut:
+    aligned = [m.competency.code for m in r.competency_mappings if m.competency]
+    first_mapping_prov = (
+        r.competency_mappings[0].mapping_provenance
+        if r.competency_mappings and hasattr(r.competency_mappings[0], 'mapping_provenance')
+        else "Platform Curated Competency Mapping"
+    )
+    return LearningResourceOut(
+        id=r.id,
+        title=r.title,
+        description=r.description,
+        source=r.source,
+        official_url=r.official_url,
+        resource_type=r.resource_type,
+        difficulty=r.difficulty,
+        estimated_duration_mins=r.estimated_duration_mins,
+        publisher_org=r.publisher_org or r.source,
+        provenance_type=r.provenance_type,
+        reference_period=r.reference_period,
+        access_level=r.access_level or "PUBLIC",
+        source_format=r.source_format,
+        publication_date=r.publication_date,
+        version=r.version,
+        thumbnail_url=r.thumbnail_url,
+        aligned_competencies=aligned,
+        provider_external_id=getattr(r, "provider_external_id", None),
+        verification_level=getattr(r, "verification_level", None) or "PORTAL_VERIFIED",
+        mapping_provenance=first_mapping_prov
+    )
+
+@router.get("/resources", response_model=List[LearningResourceOut])
+def get_all_resources(
+    source: Optional[str] = Query(None, description="Filter by source: 'iGOT_Karmayogi', 'NSSTA', 'MoSPI'"),
+    competency_code: Optional[str] = Query(None, description="Filter by aligned competency code"),
+    db: Session = Depends(get_db)
+):
+    query = db.query(LearningResource).filter(LearningResource.is_active == True)
+    if source:
+        s_clean = source.strip().lower()
+        if s_clean in ["igot", "igot_karmayogi", "igot karmayogi"]:
+            query = query.filter(LearningResource.source.ilike("%igot%"))
+        else:
+            query = query.filter(LearningResource.source.ilike(f"%{source}%"))
+    resources = query.all()
+
     out = []
     for r in resources:
-        aligned = [m.competency.code for m in r.competency_mappings if m.competency]
-        if competency_code and competency_code not in aligned:
+        res_out = _build_learning_resource_out(r)
+        if competency_code and competency_code not in res_out.aligned_competencies:
             continue
-        out.append(
-            LearningResourceOut(
-                id=r.id,
-                title=r.title,
-                description=r.description,
-                source=r.source,
-                official_url=r.official_url,
-                resource_type=r.resource_type,
-                difficulty=r.difficulty,
-                estimated_duration_mins=r.estimated_duration_mins,
-                publisher_org=r.publisher_org or r.source,
-                provenance_type=r.provenance_type,
-                reference_period=r.reference_period,
-                access_level=r.access_level or "PUBLIC",
-                source_format=r.source_format,
-                publication_date=r.publication_date,
-                version=r.version,
-                thumbnail_url=r.thumbnail_url,
-                aligned_competencies=aligned
-            )
-        )
+        out.append(res_out)
     return out
 
 @router.get("/resources/{resource_id}", response_model=LearningResourceOut)
@@ -100,26 +125,7 @@ def get_resource_by_id(resource_id: int, db: Session = Depends(get_db)):
     res = db.query(LearningResource).filter(LearningResource.id == resource_id, LearningResource.is_active == True).first()
     if not res:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Learning resource not found")
-    aligned = [m.competency.code for m in res.competency_mappings if m.competency]
-    return LearningResourceOut(
-        id=res.id,
-        title=res.title,
-        description=res.description,
-        source=res.source,
-        official_url=res.official_url,
-        resource_type=res.resource_type,
-        difficulty=res.difficulty,
-        estimated_duration_mins=res.estimated_duration_mins,
-        publisher_org=res.publisher_org or res.source,
-        provenance_type=res.provenance_type,
-        reference_period=res.reference_period,
-        access_level=res.access_level or "PUBLIC",
-        source_format=res.source_format,
-        publication_date=res.publication_date,
-        version=res.version,
-        thumbnail_url=res.thumbnail_url,
-        aligned_competencies=aligned
-    )
+    return _build_learning_resource_out(res)
 
 @router.get("/admin/resources/sources", response_model=List[OfficialSourceOut])
 def get_admin_official_sources(
@@ -212,35 +218,7 @@ def get_my_adaptive_learning_path(
     comp_resources = db.query(LearningResource).filter(LearningResource.id.in_(comp_ids)).all() if comp_ids else []
 
     def to_out(r_list):
-        out = []
-        for r in r_list:
-            aligned = [m.competency.code for m in r.competency_mappings if m.competency]
-            first_mapping_prov = r.competency_mappings[0].mapping_provenance if r.competency_mappings and hasattr(r.competency_mappings[0], 'mapping_provenance') else "Platform Curated Competency Mapping"
-            out.append(
-                LearningResourceOut(
-                    id=r.id,
-                    title=r.title,
-                    description=r.description,
-                    source=r.source,
-                    official_url=r.official_url,
-                    resource_type=r.resource_type,
-                    difficulty=r.difficulty,
-                    estimated_duration_mins=r.estimated_duration_mins,
-                    publisher_org=r.publisher_org or r.source,
-                    provenance_type=r.provenance_type,
-                    reference_period=r.reference_period,
-                    access_level=r.access_level or "PUBLIC",
-                    source_format=r.source_format,
-                    publication_date=r.publication_date,
-                    version=r.version,
-                    thumbnail_url=r.thumbnail_url,
-                    aligned_competencies=aligned,
-                    provider_external_id=r.provider_external_id,
-                    verification_level=r.verification_level or "PORTAL_VERIFIED",
-                    mapping_provenance=first_mapping_prov
-                )
-            )
-        return out
+        return [_build_learning_resource_out(r) for r in r_list]
 
     recent_history_records = db.query(LearningProgressHistory).filter(
         LearningProgressHistory.user_id == current_user.id

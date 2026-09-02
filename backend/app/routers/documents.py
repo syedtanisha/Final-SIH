@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 from ..db.database import get_db
 from ..core.security import get_current_user
 from ..models.models import User, Document, ContentChunk, Competency
@@ -68,7 +68,7 @@ async def upload_document(
         suggested_competency_id=mapping_res["competency_id"],
         mapping_confidence=mapping_res["mapping_confidence"],
         mapping_method=mapping_res["mapping_method"],
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None)
     )
     db.add(doc)
     db.commit()
@@ -83,7 +83,7 @@ async def upload_document(
             chunk_text=c_item["chunk_text"],
             character_count=c_item["character_count"],
             token_count_approx=c_item["token_count_approx"],
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None)
         )
         db.add(chunk_obj)
 
@@ -172,7 +172,7 @@ def override_competency_mapping(
     doc.mapping_confidence = 1.0
     doc.mapping_method = "EXPLICIT_DECLARED"
     doc.mapping_overridden_by = current_user.id
-    doc.overridden_at = datetime.utcnow()
+    doc.overridden_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     db.commit()
     db.refresh(doc)
