@@ -827,147 +827,97 @@ Return ONLY valid JSON with this exact structure:
     ans_lower = answer.lower().strip()
     q_lower = question.lower().strip()
     comp_code = (competency or "").upper().strip()
-    word_count = len(answer.split())
+    words = [w.strip(".,!?;:()[]\"'") for w in ans_lower.split() if w.strip(".,!?;:()[]\"'")]
+    word_count = len(words)
     
     # -------------------------------------------------------------
-    # 0. GIBBERISH / OFF-TOPIC / MINIMAL ANSWER DETECTION
+    # 0. GIBBERISH / OFF-TOPIC / REPETITIVE / MINIMAL ANSWER DETECTION
     # -------------------------------------------------------------
-    # All valid statistical terms across official domains
-    all_stat_keywords = [
-        "gdp", "gva", "output", "consumption", "sna", "nad", "mca", "gfcf", "capital",
-        "sample", "survey", "strata", "stratified", "fsu", "usu", "multiplier", "weight",
-        "probability", "variance", "cluster", "plfs", "nss", "sdrd", "non-sampling", "bias",
-        "cpi", "iip", "index", "price", "laspeyres", "basket", "inflation", "quotation", "esd",
-        "python", "pandas", "microdata", "vectorization", "chunk", "anonymization", "sql",
-        "quality", "audit", "nqaf", "un", "confidentiality", "impartiality", "transparency",
-        "asi", "factory", "bidi", "industry", "agriculture", "yield", "upss", "cws", "labor",
-        "sdg", "nif", "indicator", "dissemination", "metadata", "esankhyiki", "standard error",
-        "mean", "rate", "ratio", "census", "schedule", "investigator", "canvassing"
-    ]
+    # Domain-specific technical terms for official MoSPI statistical competencies
+    domain_tech_keywords = {
+        "STAT_SURVEY": ["sample", "sampling", "strata", "stratified", "fsu", "usu", "multiplier", "weight", "probability", "variance", "cluster", "frame", "non-sampling", "deff", "rse", "canvassing", "sdrd", "multistage"],
+        "STAT_NAT_ACC": ["gdp", "gva", "output", "consumption", "sna", "basic price", "market price", "factor cost", "gfcf", "mca-21", "nad", "national account", "supply-use", "value added"],
+        "STAT_PRICE_IND": ["cpi", "iip", "laspeyres", "basket", "base year", "price", "index", "inflation", "quotation", "relative", "esd", "weighting", "geometric mean"],
+        "STAT_COMPUTE": ["python", "pandas", "microdata", "vectorization", "chunk", "anonymization", "sql", "dataframe", "disclosure control", "scripting"],
+        "STAT_QUAL_AUDIT": ["nqaf", "un nqaf", "impartiality", "confidentiality", "transparency", "metadata", "audit", "validation", "framework"],
+        "STAT_IND_AGRI": ["asi", "factory", "factories act", "census sector", "sample sector", "manufacturing", "industrial", "bidi"],
+        "STAT_DEMO_SOC": ["upss", "cws", "plfs", "usual principal", "subsidiary status", "current weekly status", "labour", "employment", "unemployment", "workforce"],
+        "STAT_SDG": ["sdg", "nif", "indicator", "national indicator framework", "disaggregation", "benchmark", "monitoring"]
+    }
 
-    matched_global_terms = [k for k in all_stat_keywords if k in ans_lower]
+    # All domain technical keywords combined
+    all_domain_tech_terms = set()
+    for kw_list in domain_tech_keywords.values():
+        all_domain_tech_terms.update(kw_list)
 
-    # If answer is pure gibberish, too short, or has zero statistical keywords
-    if word_count < 4 or len(ans_lower) < 15 or len(matched_global_terms) == 0:
+    # Count matched domain-specific technical terms
+    matched_tech_terms = [t for t in all_domain_tech_terms if t in ans_lower]
+
+    # Check for repetitive / random character patterns (e.g. 'asdfghjkl', 'aaaaa', '12345')
+    import re
+    has_consecutive_repeats = bool(re.search(r'(.)\1{5,}', ans_lower))
+    word_diversity = len(set(words)) / max(1, word_count)
+    has_repeated_gibberish = has_consecutive_repeats or (word_count >= 6 and word_diversity < 0.30)
+
+    # STRICT PENALTY RULE:
+    # If answer is under 10 words, or has fewer than 1 matched technical term, or is gibberish/repetitive:
+    if word_count < 10 or len(ans_lower) < 30 or len(matched_tech_terms) < 1 or has_repeated_gibberish:
+        # Determine exact score (0, 1, or 2 out of 10)
+        calc_score = 1
+        if len(matched_tech_terms) == 1 and word_count >= 15:
+            calc_score = 3
+        elif has_repeated_gibberish or word_count < 5 or len(matched_tech_terms) == 0:
+            calc_score = 0
+
         return {
-            "score": 1,
+            "score": calc_score,
             "evaluation": (
-                f"Inadequate / Irrelevant Response (1/10). The submitted text does not contain relevant statistical concepts, "
-                f"formulas, or valid methodology for this question on {domain or 'Official Statistics'}. "
+                f"Inadequate / Off-Topic Response ({calc_score}/10). The submitted text lacks the required technical statistical concepts, "
+                f"formulas, and domain methodology for this question on {domain or 'Official Statistics'}. "
                 f"Official cadre examinations require substantive, technically accurate explanations referencing Ministry guidelines."
             ),
             "strengths": [],
             "weaknesses": [
-                "The response lacked technical terminology, formulas, or standard operating procedures required for this topic.",
-                "Please provide a substantive, professional explanation addressing the core statistical methodology."
+                "The response does not contain relevant statistical terminology, definitions, or standard operating procedures required for this topic.",
+                "Please provide a substantive technical explanation referencing official MoSPI / NSSTA standards."
             ],
             "next_difficulty": "Beginner"
         }
 
-    score = 5
-    if word_count >= 15:
-        score += 1
+    # -------------------------------------------------------------
+    # 1. LEGITIMATE STATISTICAL ANSWER SCORING
+    # -------------------------------------------------------------
+    # Base score determined by technical density and word count
+    base_score = 5
+    if len(matched_tech_terms) >= 3:
+        base_score += 2
+    if len(matched_tech_terms) >= 5:
+        base_score += 1
     if word_count >= 30:
-        score += 1
-    if word_count >= 55:
-        score += 1
+        base_score += 1
+
+    score = min(10, base_score)
 
     strengths = []
     weaknesses = []
 
-    # 1. National Accounts & Macroeconomic Aggregates
-    if comp_code == "STAT_NAT_ACC" or "national account" in q_lower or "gdp" in q_lower or "gva" in q_lower:
-        matched_terms = [t for t in ["gva", "gdp", "output", "intermediate consumption", "sna", "gfcf", "mca-21", "nad", "factor", "market price", "basic price"] if t in ans_lower]
-        if len(matched_terms) >= 2:
-            score = max(score, 8)
-            strengths.append(f"Accurately articulates SNA 2008 value-added concepts, correctly referencing {', '.join(matched_terms[:3]).upper()}.")
-        else:
-            strengths.append("Identifies the fundamental macroeconomic role of National Accounts in state and national policy planning.")
-        strengths.append("Demonstrates solid understanding of macroeconomic compilation protocols established by the National Accounts Division (NAD).")
-        weaknesses.append("Can further elaborate on the integration of MCA-21 electronic filings and annual supply-use balancing under SNA 2008.")
+    # Domain specific feedback generation
+    matched_str = ", ".join([t.upper() for t in matched_tech_terms[:3]])
+    strengths.append(f"Demonstrates clear understanding of core domain methodology, correctly referencing {matched_str}.")
+    strengths.append("Shows proper alignment with official MoSPI data production standards.")
 
-    # 2. Survey Methodology & Sampling Design
-    elif comp_code == "STAT_SURVEY" or "sample" in q_lower or "survey" in q_lower or "strata" in q_lower or "fsu" in q_lower:
-        matched_terms = [t for t in ["strata", "stratified", "fsu", "usu", "multiplier", "cluster", "variance", "weight", "probability", "frame", "non-sampling"] if t in ans_lower]
-        if len(matched_terms) >= 2:
-            score = max(score, 8)
-            strengths.append(f"Correctly explains multi-stage sampling principles, incorporating {', '.join(matched_terms[:3])}.")
-        else:
-            strengths.append("Correctly recognizes the necessity of representative sampling frames for socio-economic survey rounds.")
-        strengths.append("Demonstrates practical awareness of field canvassing protocols and non-sampling error controls in NSS operations.")
-        weaknesses.append("Consider detailing the calculation of Design Effects (Deff) and Relative Standard Error (RSE) for sub-domain estimates.")
-
-    # 3. Price Statistics & Index Numbers
-    elif comp_code == "STAT_PRICE_IND" or "price" in q_lower or "cpi" in q_lower or "iip" in q_lower or "index" in q_lower:
-        matched_terms = [t for t in ["laspeyres", "basket", "cpi", "iip", "base year", "weight", "relative", "inflation", "quotation", "rural", "urban"] if t in ans_lower]
-        if len(matched_terms) >= 2:
-            score = max(score, 8)
-            strengths.append(f"Clearly details base-weighted aggregation methodology, referencing {', '.join(matched_terms[:3])}.")
-        else:
-            strengths.append("Shows a clear conceptual grasp of how index numbers reflect temporal changes in prices and physical production.")
-        strengths.append("Demonstrates thorough understanding of official economic indicators published monthly by the Economic Statistics Division (ESD).")
-        weaknesses.append("Could mention standard operating procedures for imputing seasonal missing price quotations via cell-mean geometric averages.")
-
-    # 4. Data Science & Official Computing
-    elif comp_code == "STAT_COMPUTE" or "python" in q_lower or "comput" in q_lower or "data" in q_lower or "pandas" in q_lower:
-        matched_terms = [t for t in ["python", "pandas", "vectorization", "chunk", "anonymization", "sql", "multiplier", "audit", "memory", "dataframe"] if t in ans_lower]
-        if len(matched_terms) >= 2:
-            score = max(score, 8)
-            strengths.append(f"Demonstrates strong computational proficiency, referencing {', '.join(matched_terms[:3])} for microdata processing.")
-        else:
-            strengths.append("Understands the importance of automation and reproducible scripting in large-scale official statistics.")
-        strengths.append("Correctly emphasizes the throughput efficiency of vectorized batch routines over manual data processing.")
-        weaknesses.append("Could expand on statistical disclosure control protocols (k-anonymity and top-coding) prior to microdata dissemination.")
-
-    # 5. Quality Assurance & Audit
-    elif comp_code == "STAT_QUAL_AUDIT" or "quality" in q_lower or "audit" in q_lower or "nqaf" in q_lower:
-        matched_terms = [t for t in ["nqaf", "un", "fundamental principles", "impartiality", "confidentiality", "transparency", "metadata", "audit", "re-check"] if t in ans_lower]
-        if len(matched_terms) >= 2:
-            score = max(score, 8)
-            strengths.append(f"Demonstrates rigorous understanding of UN NQAF standards, highlighting {', '.join(matched_terms[:3])}.")
-        else:
-            strengths.append("Recognizes the critical need for methodological integrity and respondent trust in official surveys.")
-        strengths.append("Aligns answers with MoSPI's official National Quality Assurance Framework.")
-        weaknesses.append("Consider citing specific supervisory re-check thresholds and independent third-party validation procedures.")
-
-    # 6. Industrial & Agricultural Statistics
-    elif comp_code == "STAT_IND_AGRI" or "asi" in q_lower or "factor" in q_lower or "industry" in q_lower or "agri" in q_lower:
-        strengths.append("Correctly references the Annual Survey of Industries (ASI) factory frame under the Factories Act, 1948.")
-        strengths.append("Understands the relationship between factory output, intermediate consumption, and national manufacturing GVA.")
-        weaknesses.append("Can further detail the distinction between the Census Sector and Sample Sector in the ASI sampling scheme.")
-
-    # 7. Demographic & Social Statistics
-    elif comp_code == "STAT_DEMO_SOC" or "plfs" in q_lower or "labor" in q_lower or "employment" in q_lower or "demograph" in q_lower:
-        strengths.append("Accurately identifies labor market activity criteria under Usual Principal and Subsidiary Status (UPSS) and Current Weekly Status (CWS).")
-        strengths.append("Demonstrates solid understanding of Periodic Labour Force Survey (PLFS) quarterly and annual indicators.")
-        weaknesses.append("Could elaborate on rotational sampling panel design used for tracking urban employment transitions.")
-
-    # 8. Sustainable Development Goals
-    elif comp_code == "STAT_SDG" or "sdg" in q_lower or "indicator" in q_lower:
-        strengths.append("Demonstrates thorough familiarity with India's SDG National Indicator Framework (NIF) and baseline monitoring.")
-        strengths.append("Understands multi-agency data aggregation and state-level benchmarking.")
-        weaknesses.append("Can detail disaggregation protocols across gender, geography, and socio-economic groups.")
-
-    # General Fallback
+    if score < 8:
+        weaknesses.append("Can further elaborate on unit-level microdata validation and error control procedures.")
+        weaknesses.append("Consider referencing specific division circulars and NSSTA training manuals.")
     else:
-        strengths.append("Provides a coherent conceptual overview with sound professional logic.")
-        strengths.append("Answers the question using appropriate official statistical terminology.")
-        weaknesses.append("Incorporate specific formulas, standard operating procedures, or division circulars to demonstrate expert mastery.")
-
-    score = min(10, max(1, score))
-    next_diff = "Advanced" if score >= 8 else ("Intermediate" if score >= 5 else "Beginner")
-
-    eval_text = (
-        f"AI Evaluation: Strong demonstration ({score}/10). Your answer demonstrates practical understanding of {domain or competency or 'the statistical discipline'} "
-        f"within India's Official Statistical System. Your reasoning aligns with official Ministry guidelines."
-    )
+        weaknesses.append("Review advanced specialized research bulletins for ongoing rebase adjustments.")
 
     return {
         "score": score,
-        "evaluation": eval_text,
+        "evaluation": f"Substantive technical response ({score}/10). Demonstrated solid conceptual grasp of statistical principles.",
         "strengths": strengths,
         "weaknesses": weaknesses,
-        "next_difficulty": next_diff
+        "next_difficulty": "Advanced" if score >= 8 else "Intermediate"
     }
 
 async def generate_final_interview_report_async(

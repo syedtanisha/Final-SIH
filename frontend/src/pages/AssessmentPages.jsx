@@ -964,6 +964,26 @@ export const FinalInterviewPage = () => {
   const submitAnswer = async () => {
     if (!answer.trim()) return;
     const q = questions[currentQuestion];
+    
+    // Client-side quick keyword check for fallback
+    const ansLower = answer.trim().toLowerCase();
+    const words = ansLower.split(/\s+/);
+    const techKeywords = ["sample", "sampling", "strata", "stratified", "fsu", "usu", "multiplier", "gdp", "gva", "cpi", "iip", "laspeyres", "sna", "plfs", "upss", "cws", "nqaf", "asi", "variance", "index", "weight", "microdata", "survey", "methodology"];
+    const matchedCount = techKeywords.filter(k => ansLower.includes(k)).length;
+    const isQualityAnswer = words.length >= 12 && matchedCount >= 2;
+
+    const defaultFallback = isQualityAnswer ? {
+      score: 7,
+      evaluation: "Substantive technical response. Demonstrated conceptual understanding of statistical principles.",
+      strengths: ["Proper alignment with official data production standards.", "Includes relevant statistical concepts."],
+      weaknesses: ["Can further elaborate on unit-level microdata validation procedures."]
+    } : {
+      score: 1,
+      evaluation: "Inadequate / Off-Topic Response (1/10). The submitted text lacks required technical statistical concepts and domain methodology.",
+      strengths: [],
+      weaknesses: ["The response does not contain relevant statistical terminology or formulas required for this topic.", "Please provide a substantive technical explanation referencing official MoSPI / NSSTA standards."]
+    };
+
     try {
       setEvaluating(true);
       setError('');
@@ -976,12 +996,7 @@ export const FinalInterviewPage = () => {
         difficulty: q.difficulty || 'Intermediate',
       });
 
-      const evalData = response?.data || {
-        score: 8,
-        evaluation: "Demonstrated clear conceptual understanding of statistical methodologies and official guidelines.",
-        strengths: ["Strong domain alignment", "Correct application of sampling frames and definitions"],
-        weaknesses: ["Can expand further on microdata unit-level validation procedures"]
-      };
+      const evalData = response?.data || defaultFallback;
       setEvaluation(evalData);
 
       setAnswers((prev) => [...prev, {
@@ -989,29 +1004,23 @@ export const FinalInterviewPage = () => {
         answer: answer.trim(),
         competency: q.competency_code || q.code || 'STAT_SURVEY',
         domain: q.domain || 'Official Statistics',
-        score: evalData.score || 8,
-        evaluation: evalData.evaluation || 'Satisfactory explanation provided.',
+        score: typeof evalData.score === 'number' ? evalData.score : (isQualityAnswer ? 7 : 1),
+        evaluation: evalData.evaluation || defaultFallback.evaluation,
         strengths: evalData.strengths || [],
         weaknesses: evalData.weaknesses || []
       }]);
     } catch (err) {
       console.error('Answer evaluation error:', err);
-      const evalData = {
-        score: 8,
-        evaluation: "Demonstrated clear conceptual understanding of statistical methodologies and official guidelines.",
-        strengths: ["Strong domain alignment", "Correct application of sampling frames and definitions"],
-        weaknesses: ["Can expand further on microdata unit-level validation procedures"]
-      };
-      setEvaluation(evalData);
+      setEvaluation(defaultFallback);
       setAnswers((prev) => [...prev, {
         question: q.question,
         answer: answer.trim(),
         competency: q.competency_code || q.code || 'STAT_SURVEY',
         domain: q.domain || 'Official Statistics',
-        score: evalData.score,
-        evaluation: evalData.evaluation,
-        strengths: evalData.strengths,
-        weaknesses: evalData.weaknesses
+        score: defaultFallback.score,
+        evaluation: defaultFallback.evaluation,
+        strengths: defaultFallback.strengths,
+        weaknesses: defaultFallback.weaknesses
       }]);
     } finally {
       setEvaluating(false);
