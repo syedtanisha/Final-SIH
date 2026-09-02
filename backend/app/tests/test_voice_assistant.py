@@ -119,3 +119,4 @@ def test_authenticated_voice_rag_chat_endpoint(test_user_and_headers):
     assert "chat_message" in vc_data
     assert vc_data["chat_message"]["role"] == "assistant"
     assert vc_data["audio_base64"] is not None
+    assert vc_data["audio_format"] in ("mp3", "wav")
