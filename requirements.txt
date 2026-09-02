@@ -1,0 +1,35 @@
+# Web Framework & ASGI Server
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.9
+
+# Data Validation & Settings (Pydantic V2)
+pydantic>=2.6.0,<3.0.0
+pydantic-settings>=2.1.0
+email-validator>=2.1.0
+typing-extensions>=4.9.0
+
+# Database & ORM (PostgreSQL / Supabase & SQLite)
+sqlalchemy>=2.0.25
+psycopg2-binary>=2.9.9
+
+# Security, Cryptography & JWT Authentication
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.1.2
+cryptography>=42.0.0
+
+# Async HTTP Client for AI / LLM APIs (Groq & Gemini)
+httpx>=0.26.0
+
+# Document Ingestion & Text Extraction (PDF, DOCX, PPTX)
+pypdf>=4.0.0
+python-docx>=1.1.0
+python-pptx>=0.6.23
+
+# Testing Suite & Async Test Runner
+pytest>=8.0.0
+anyio>=4.2.0
+
+# Voice Processing (Text-to-Speech & Speech-to-Text)
+gTTS>=2.5.0
+
