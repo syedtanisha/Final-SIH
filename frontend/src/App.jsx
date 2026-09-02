@@ -79,8 +79,8 @@ const AppLayout = () => {
       <Navbar />
       
       {/* Main Content: Apply lg:pl-64 ONLY for authenticated sidebar routes */}
-      <main className={`flex-1 flex flex-col justify-between min-h-screen ${isPublicRoute ? 'pl-0' : 'lg:pl-64'}`}>
-        <div className="flex-1">
+      <main className={`flex-1 flex flex-col ${isPublicRoute ? 'pl-0' : 'lg:pl-64'}`}>
+        <div className="flex-1 pb-10">
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<LandingPage />} />
