@@ -176,16 +176,6 @@ export const LoginPage = () => {
                 </button>
               </form>
 
-              <div className="pt-3 text-center border-t border-[#E7E5E4]">
-                <button
-                  type="button"
-                  onClick={handleDemoLogin}
-                  className="text-xs text-[#991B1B] hover:underline font-bold"
-                >
-                  Fill Demo Credentials (Dr. Rajesh Kumar)
-                </button>
-              </div>
-
               <div className="text-center pt-1">
                 <p className="text-xs text-[#78716C]">
                   Need an account?{' '}
