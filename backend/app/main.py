@@ -65,88 +65,91 @@ def seed_initial_data():
 
 def ensure_db_schema_migrated():
     from sqlalchemy import inspect, text
-    inspector = inspect(engine)
-    with engine.connect() as conn:
-        if inspector.has_table("learning_resources"):
-            cols = [c["name"] for c in inspector.get_columns("learning_resources")]
-            if "publisher_org" not in cols:
-                conn.execute(text("ALTER TABLE learning_resources ADD COLUMN publisher_org VARCHAR(100)"))
-            if "provenance_type" not in cols:
-                conn.execute(text("ALTER TABLE learning_resources ADD COLUMN provenance_type VARCHAR(100) DEFAULT 'Curated Official Metadata'"))
-            if "reference_period" not in cols:
-                conn.execute(text("ALTER TABLE learning_resources ADD COLUMN reference_period VARCHAR(100)"))
-            if "source_id" not in cols:
-                conn.execute(text("ALTER TABLE learning_resources ADD COLUMN source_id INTEGER"))
-            if "source_format" not in cols:
-                conn.execute(text("ALTER TABLE learning_resources ADD COLUMN source_format VARCHAR(50)"))
-            if "access_level" not in cols:
-                conn.execute(text("ALTER TABLE learning_resources ADD COLUMN access_level VARCHAR(50) DEFAULT 'PUBLIC'"))
-            if "publication_date" not in cols:
-                conn.execute(text("ALTER TABLE learning_resources ADD COLUMN publication_date VARCHAR(100)"))
-            if "version" not in cols:
-                conn.execute(text("ALTER TABLE learning_resources ADD COLUMN version VARCHAR(50)"))
-            if "dedup_hash" not in cols:
-                conn.execute(text("ALTER TABLE learning_resources ADD COLUMN dedup_hash VARCHAR(255)"))
-            if "last_verified_at" not in cols:
-                conn.execute(text("ALTER TABLE learning_resources ADD COLUMN last_verified_at DATETIME"))
-            if "role_relevance" not in cols:
-                conn.execute(text("ALTER TABLE learning_resources ADD COLUMN role_relevance VARCHAR(255)"))
-            if "provider_external_id" not in cols:
-                conn.execute(text("ALTER TABLE learning_resources ADD COLUMN provider_external_id VARCHAR(100)"))
-            if "verification_level" not in cols:
-                conn.execute(text("ALTER TABLE learning_resources ADD COLUMN verification_level VARCHAR(50) DEFAULT 'PORTAL_VERIFIED'"))
-        if inspector.has_table("learning_progress_history"):
-            cols = [c["name"] for c in inspector.get_columns("learning_progress_history")]
-            if "evidence_key" not in cols:
-                conn.execute(text("ALTER TABLE learning_progress_history ADD COLUMN evidence_key VARCHAR(255)"))
-        if inspector.has_table("resource_competency_mappings"):
-            cols = [c["name"] for c in inspector.get_columns("resource_competency_mappings")]
-            if "mapping_provenance" not in cols:
-                conn.execute(text("ALTER TABLE resource_competency_mappings ADD COLUMN mapping_provenance VARCHAR(100) DEFAULT 'Official FRAC Alignment'"))
+    try:
+        inspector = inspect(engine)
+        with engine.connect() as conn:
+            if inspector.has_table("learning_resources"):
+                cols = [c["name"] for c in inspector.get_columns("learning_resources")]
+                if "publisher_org" not in cols:
+                    conn.execute(text("ALTER TABLE learning_resources ADD COLUMN publisher_org VARCHAR(100)"))
+                if "provenance_type" not in cols:
+                    conn.execute(text("ALTER TABLE learning_resources ADD COLUMN provenance_type VARCHAR(100) DEFAULT 'Curated Official Metadata'"))
+                if "reference_period" not in cols:
+                    conn.execute(text("ALTER TABLE learning_resources ADD COLUMN reference_period VARCHAR(100)"))
+                if "source_id" not in cols:
+                    conn.execute(text("ALTER TABLE learning_resources ADD COLUMN source_id INTEGER"))
+                if "source_format" not in cols:
+                    conn.execute(text("ALTER TABLE learning_resources ADD COLUMN source_format VARCHAR(50)"))
+                if "access_level" not in cols:
+                    conn.execute(text("ALTER TABLE learning_resources ADD COLUMN access_level VARCHAR(50) DEFAULT 'PUBLIC'"))
+                if "publication_date" not in cols:
+                    conn.execute(text("ALTER TABLE learning_resources ADD COLUMN publication_date VARCHAR(100)"))
+                if "version" not in cols:
+                    conn.execute(text("ALTER TABLE learning_resources ADD COLUMN version VARCHAR(50)"))
+                if "dedup_hash" not in cols:
+                    conn.execute(text("ALTER TABLE learning_resources ADD COLUMN dedup_hash VARCHAR(255)"))
+                if "last_verified_at" not in cols:
+                    conn.execute(text("ALTER TABLE learning_resources ADD COLUMN last_verified_at TIMESTAMP"))
+                if "role_relevance" not in cols:
+                    conn.execute(text("ALTER TABLE learning_resources ADD COLUMN role_relevance VARCHAR(255)"))
+                if "provider_external_id" not in cols:
+                    conn.execute(text("ALTER TABLE learning_resources ADD COLUMN provider_external_id VARCHAR(100)"))
+                if "verification_level" not in cols:
+                    conn.execute(text("ALTER TABLE learning_resources ADD COLUMN verification_level VARCHAR(50) DEFAULT 'PORTAL_VERIFIED'"))
+            if inspector.has_table("learning_progress_history"):
+                cols = [c["name"] for c in inspector.get_columns("learning_progress_history")]
+                if "evidence_key" not in cols:
+                    conn.execute(text("ALTER TABLE learning_progress_history ADD COLUMN evidence_key VARCHAR(255)"))
+            if inspector.has_table("resource_competency_mappings"):
+                cols = [c["name"] for c in inspector.get_columns("resource_competency_mappings")]
+                if "mapping_provenance" not in cols:
+                    conn.execute(text("ALTER TABLE resource_competency_mappings ADD COLUMN mapping_provenance VARCHAR(100) DEFAULT 'Official FRAC Alignment'"))
 
-        if inspector.has_table("documents"):
-            cols = [c["name"] for c in inspector.get_columns("documents")]
-            if "content_hash" not in cols:
-                conn.execute(text("ALTER TABLE documents ADD COLUMN content_hash VARCHAR(64)"))
-            if "extraction_status" not in cols:
-                conn.execute(text("ALTER TABLE documents ADD COLUMN extraction_status VARCHAR(50) DEFAULT 'SUCCESS'"))
-            if "processing_status" not in cols:
-                conn.execute(text("ALTER TABLE documents ADD COLUMN processing_status VARCHAR(50) DEFAULT 'PROCESSED'"))
-            if "suggested_competency_id" not in cols:
-                conn.execute(text("ALTER TABLE documents ADD COLUMN suggested_competency_id INTEGER"))
-            if "mapping_confidence" not in cols:
-                conn.execute(text("ALTER TABLE documents ADD COLUMN mapping_confidence FLOAT DEFAULT 0.85"))
-            if "mapping_method" not in cols:
-                conn.execute(text("ALTER TABLE documents ADD COLUMN mapping_method VARCHAR(100) DEFAULT 'PLATFORM_HEURISTIC'"))
-            if "mapping_overridden_by" not in cols:
-                conn.execute(text("ALTER TABLE documents ADD COLUMN mapping_overridden_by INTEGER"))
-            if "overridden_at" not in cols:
-                conn.execute(text("ALTER TABLE documents ADD COLUMN overridden_at DATETIME"))
-        if inspector.has_table("quizzes"):
-            cols = [c["name"] for c in inspector.get_columns("quizzes")]
-            if "purpose" not in cols:
-                conn.execute(text("ALTER TABLE quizzes ADD COLUMN purpose VARCHAR(50) DEFAULT 'SELF_ASSESSMENT'"))
-            if "blueprint_metadata" not in cols:
-                conn.execute(text("ALTER TABLE quizzes ADD COLUMN blueprint_metadata TEXT"))
-            if "generation_method" not in cols:
-                conn.execute(text("ALTER TABLE quizzes ADD COLUMN generation_method VARCHAR(100) DEFAULT 'DETERMINISTIC_FALLBACK'"))
-        if inspector.has_table("quiz_questions"):
-            cols = [c["name"] for c in inspector.get_columns("quiz_questions")]
-            if "source_reference" not in cols:
-                conn.execute(text("ALTER TABLE quiz_questions ADD COLUMN source_reference VARCHAR(255)"))
-            if "generation_method" not in cols:
-                conn.execute(text("ALTER TABLE quiz_questions ADD COLUMN generation_method VARCHAR(100) DEFAULT 'DETERMINISTIC_FALLBACK'"))
-            if "competency_mapping_method" not in cols:
-                conn.execute(text("ALTER TABLE quiz_questions ADD COLUMN competency_mapping_method VARCHAR(100) DEFAULT 'PLATFORM_HEURISTIC'"))
-        if inspector.has_table("quiz_attempts"):
-            cols = [c["name"] for c in inspector.get_columns("quiz_attempts")]
-            if "status" not in cols:
-                conn.execute(text("ALTER TABLE quiz_attempts ADD COLUMN status VARCHAR(50) DEFAULT 'EVALUATED'"))
-            if "feedback_method" not in cols:
-                conn.execute(text("ALTER TABLE quiz_attempts ADD COLUMN feedback_method VARCHAR(100) DEFAULT 'Deterministic Pedagogical Feedback'"))
-            if "evidence_key" not in cols:
-                conn.execute(text("ALTER TABLE quiz_attempts ADD COLUMN evidence_key VARCHAR(255)"))
-        conn.commit()
+            if inspector.has_table("documents"):
+                cols = [c["name"] for c in inspector.get_columns("documents")]
+                if "content_hash" not in cols:
+                    conn.execute(text("ALTER TABLE documents ADD COLUMN content_hash VARCHAR(64)"))
+                if "extraction_status" not in cols:
+                    conn.execute(text("ALTER TABLE documents ADD COLUMN extraction_status VARCHAR(50) DEFAULT 'SUCCESS'"))
+                if "processing_status" not in cols:
+                    conn.execute(text("ALTER TABLE documents ADD COLUMN processing_status VARCHAR(50) DEFAULT 'PROCESSED'"))
+                if "suggested_competency_id" not in cols:
+                    conn.execute(text("ALTER TABLE documents ADD COLUMN suggested_competency_id INTEGER"))
+                if "mapping_confidence" not in cols:
+                    conn.execute(text("ALTER TABLE documents ADD COLUMN mapping_confidence FLOAT DEFAULT 0.85"))
+                if "mapping_method" not in cols:
+                    conn.execute(text("ALTER TABLE documents ADD COLUMN mapping_method VARCHAR(100) DEFAULT 'PLATFORM_HEURISTIC'"))
+                if "mapping_overridden_by" not in cols:
+                    conn.execute(text("ALTER TABLE documents ADD COLUMN mapping_overridden_by INTEGER"))
+                if "overridden_at" not in cols:
+                    conn.execute(text("ALTER TABLE documents ADD COLUMN overridden_at TIMESTAMP"))
+            if inspector.has_table("quizzes"):
+                cols = [c["name"] for c in inspector.get_columns("quizzes")]
+                if "purpose" not in cols:
+                    conn.execute(text("ALTER TABLE quizzes ADD COLUMN purpose VARCHAR(50) DEFAULT 'SELF_ASSESSMENT'"))
+                if "blueprint_metadata" not in cols:
+                    conn.execute(text("ALTER TABLE quizzes ADD COLUMN blueprint_metadata TEXT"))
+                if "generation_method" not in cols:
+                    conn.execute(text("ALTER TABLE quizzes ADD COLUMN generation_method VARCHAR(100) DEFAULT 'DETERMINISTIC_FALLBACK'"))
+            if inspector.has_table("quiz_questions"):
+                cols = [c["name"] for c in inspector.get_columns("quiz_questions")]
+                if "source_reference" not in cols:
+                    conn.execute(text("ALTER TABLE quiz_questions ADD COLUMN source_reference VARCHAR(255)"))
+                if "generation_method" not in cols:
+                    conn.execute(text("ALTER TABLE quiz_questions ADD COLUMN generation_method VARCHAR(100) DEFAULT 'DETERMINISTIC_FALLBACK'"))
+                if "competency_mapping_method" not in cols:
+                    conn.execute(text("ALTER TABLE quiz_questions ADD COLUMN competency_mapping_method VARCHAR(100) DEFAULT 'PLATFORM_HEURISTIC'"))
+            if inspector.has_table("quiz_attempts"):
+                cols = [c["name"] for c in inspector.get_columns("quiz_attempts")]
+                if "status" not in cols:
+                    conn.execute(text("ALTER TABLE quiz_attempts ADD COLUMN status VARCHAR(50) DEFAULT 'EVALUATED'"))
+                if "feedback_method" not in cols:
+                    conn.execute(text("ALTER TABLE quiz_attempts ADD COLUMN feedback_method VARCHAR(100) DEFAULT 'Deterministic Pedagogical Feedback'"))
+                if "evidence_key" not in cols:
+                    conn.execute(text("ALTER TABLE quiz_attempts ADD COLUMN evidence_key VARCHAR(255)"))
+            conn.commit()
+    except Exception as e:
+        print(f"[WARNING] Schema migration check failed: {e}")
 
 def init_db_schema():
     try:
