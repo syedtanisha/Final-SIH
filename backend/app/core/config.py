@@ -60,6 +60,17 @@ class Settings(BaseSettings):
     @property
     def DATABASE_URL(self) -> str:
         url = self.DATABASE_URL_OVERRIDE or self.DATABASE_URL_RAW or os.getenv("DATABASE_URL")
+        if url:
+            url = url.strip()
+            if url.startswith("https://") or url.startswith("http://"):
+                if "supabase.co" in url and self.DATABASE_PASSWORD:
+                    parsed = urllib.parse.urlparse(url)
+                    project_ref = parsed.netloc.split('.')[0]
+                    encoded_password = urllib.parse.quote_plus(self.DATABASE_PASSWORD)
+                    return f"postgresql://postgres:{encoded_password}@db.{project_ref}.supabase.co:5432/postgres"
+                # Ignore invalid http/https URL string and fallback safely
+                url = None
+
         if not url and self.DATABASE_USERNAME and self.DATABASE_PASSWORD and self.DATABASE_HOSTNAME:
             encoded_password = urllib.parse.quote_plus(self.DATABASE_PASSWORD)
             url = (
@@ -67,10 +78,13 @@ class Settings(BaseSettings):
                 f"{self.DATABASE_HOSTNAME}:{self.DATABASE_PORT or '5432'}/"
                 f"{self.DATABASE_NAME or 'postgres'}"
             )
+
         if not url:
             return "sqlite:///./statlearn.db"
+
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql://", 1)
+
         return url
 
     @property
