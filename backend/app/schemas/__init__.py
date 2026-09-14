@@ -1,3 +1,4 @@
 from .user import *
-from .competency import *
 from .assessment import *
+from .competency import *
+
