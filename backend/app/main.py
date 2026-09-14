@@ -148,13 +148,19 @@ def ensure_db_schema_migrated():
                 conn.execute(text("ALTER TABLE quiz_attempts ADD COLUMN evidence_key VARCHAR(255)"))
         conn.commit()
 
-# Create database tables at module load
-Base.metadata.create_all(bind=engine)
-ensure_db_schema_migrated()
+def init_db_schema():
+    try:
+        Base.metadata.create_all(bind=engine)
+        ensure_db_schema_migrated()
+    except Exception as e:
+        print(f"[WARNING] Database schema initialization warning: {e}")
+
+# Attempt initial schema creation at module load
+init_db_schema()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Run initial seed check
+    init_db_schema()
     seed_initial_data()
     yield
 

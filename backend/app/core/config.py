@@ -1,3 +1,4 @@
+import os
 import urllib.parse
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -58,7 +59,7 @@ class Settings(BaseSettings):
 
     @property
     def DATABASE_URL(self) -> str:
-        url = self.DATABASE_URL_OVERRIDE or self.DATABASE_URL_RAW
+        url = self.DATABASE_URL_OVERRIDE or self.DATABASE_URL_RAW or os.getenv("DATABASE_URL")
         if not url and self.DATABASE_USERNAME and self.DATABASE_PASSWORD and self.DATABASE_HOSTNAME:
             encoded_password = urllib.parse.quote_plus(self.DATABASE_PASSWORD)
             url = (
