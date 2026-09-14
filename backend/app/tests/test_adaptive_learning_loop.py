@@ -1,7 +1,7 @@
 import pytest
 import uuid
 from fastapi.testclient import TestClient
-from app.main import app
+from app.main import app, seed_initial_data
 from app.db.database import SessionLocal
 from app.models.models import User, Competency, LearningResource, UserResourceProgress, UserCompetency, LearningProgressHistory
 from app.core.security import create_access_token
@@ -10,6 +10,7 @@ from app.services.learning_adaptive_service import process_learning_evidence, st
 client = TestClient(app)
 
 def test_resource_progress_lifecycle():
+    seed_initial_data()
     db_session = SessionLocal()
     try:
         user = User(
@@ -48,6 +49,7 @@ def test_resource_progress_lifecycle():
         db_session.close()
 
 def test_evidence_processing_clamping_and_idempotency():
+    seed_initial_data()
     db_session = SessionLocal()
     try:
         user = User(
@@ -142,6 +144,7 @@ def test_adaptive_learning_path_api():
         db_session.close()
 
 def test_completed_resource_exclusion_from_recommendations():
+    seed_initial_data()
     db_session = SessionLocal()
     try:
         user = User(
@@ -178,6 +181,7 @@ def test_completed_resource_exclusion_from_recommendations():
         db_session.close()
 
 def test_competency_specific_quiz_evidence_isolation():
+    seed_initial_data()
     db_session = SessionLocal()
     try:
         user = User(
@@ -188,11 +192,11 @@ def test_competency_specific_quiz_evidence_isolation():
             department="National Accounts Division"
         )
         db_session.add(user)
+        db_session.commit()
         competencies = db_session.query(Competency).all()
         assert len(competencies) >= 2
         comp_a = competencies[0]
         comp_b = competencies[1]
-        db_session.commit()
 
         # Update evidence specifically for comp_a
         key_a = f"iso-key-{uuid.uuid4().hex}"
@@ -215,6 +219,7 @@ def test_competency_specific_quiz_evidence_isolation():
         db_session.close()
 
 def test_diminishing_returns_and_realism_bounds():
+    seed_initial_data()
     db_session = SessionLocal()
     try:
         user = User(

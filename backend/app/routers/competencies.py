@@ -52,21 +52,6 @@ def get_learning_path(
 ):
     return get_personalized_learning_path(current_user.id, db)
 
-@router.get("/resources", response_model=List[LearningResourceOut])
-def get_all_resources(
-    source: Optional[str] = Query(None, description="Filter by source: 'iGOT_Karmayogi', 'NSSTA', 'MoSPI'"),
-    competency_code: Optional[str] = Query(None, description="Filter by aligned competency code"),
-    db: Session = Depends(get_db)
-):
-    query = db.query(LearningResource).filter(LearningResource.is_active == True)
-    if source:
-        s_clean = source.strip().lower()
-        if s_clean in ["igot", "igot_karmayogi", "igot karmayogi"]:
-            query = query.filter(LearningResource.source.ilike("%igot%"))
-        else:
-            query = query.filter(LearningResource.source.ilike(f"%{source}%"))
-    resources = query.all()
-
 def _build_learning_resource_out(r: LearningResource) -> LearningResourceOut:
     aligned = [m.competency.code for m in r.competency_mappings if m.competency]
     first_mapping_prov = (

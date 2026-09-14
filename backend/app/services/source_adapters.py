@@ -4,7 +4,7 @@ import io
 import csv
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 from .live_fetcher import fetch_official_live_url, is_official_domain, OFFICIAL_DOMAINS
@@ -73,7 +73,7 @@ class BaseSourceAdapter(ABC):
             "publication_date": raw_item.get("publication_date"),
             "version": raw_item.get("version"),
             "dedup_hash": dedup_hash,
-            "last_verified_at": datetime.utcnow(),
+            "last_verified_at": datetime.now(timezone.utc),
             "role_relevance": raw_item.get("role_relevance", "all"),
             "competency_code": raw_item.get("competency_code")
         }
@@ -145,7 +145,7 @@ class ESankhyikiAdapter(BaseSourceAdapter):
             for item in items:
                 item["provenance_type"] = "Live Official Metadata"
                 item["description"] = f"{item['description']} [Live Verified: HTTP {live_res['status_code']}]"
-                item["publication_date"] = datetime.utcnow().strftime("%Y-%m-%d")
+                item["publication_date"] = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
         return items
 

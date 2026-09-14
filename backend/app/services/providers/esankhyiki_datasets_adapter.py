@@ -1,6 +1,6 @@
 import logging
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .base_provider import BaseLearningProvider, IntegrationMode, NormalizedLearningResource, compute_dedup_hash
 from ..live_fetcher import fetch_official_live_url
@@ -18,7 +18,7 @@ class ESankhyikiDatasetsProvider(BaseLearningProvider):
 
     def discover_and_fetch(self) -> List[NormalizedLearningResource]:
         items: List[NormalizedLearningResource] = []
-        self.last_sync_at = datetime.utcnow()
+        self.last_sync_at = datetime.now(timezone.utc)
 
         raw_datasets = [
             {
@@ -84,7 +84,7 @@ class ESankhyikiDatasetsProvider(BaseLearningProvider):
                     provenance_type=prov_type,
                     verification_level="RESOURCE_VERIFIED" if prov_type == "Live Official Metadata" else "UNVERIFIED",
                     mapping_provenance="Platform Curated Competency Mapping",
-                    last_verified_at=datetime.utcnow(),
+                    last_verified_at=datetime.now(timezone.utc),
                     dedup_hash=dedup_hash
                 )
             )

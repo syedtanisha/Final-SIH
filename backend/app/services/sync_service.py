@@ -1,6 +1,6 @@
 import logging
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from ..models.models import LearningResource, Competency, ResourceCompetencyMapping
@@ -36,12 +36,12 @@ def synchronize_provider(provider_id: str, db: Session) -> Dict[str, Any]:
             "items_ingested": 0,
             "items_updated": 0,
             "duplicates_skipped": 0,
-            "last_verified_at": datetime.utcnow().isoformat(),
+            "last_verified_at": datetime.now(timezone.utc).isoformat(),
             "provenance_breakdown": {},
             "errors": [str(e)]
         }
 
-    provider.last_sync_at = datetime.utcnow()
+    provider.last_sync_at = datetime.now(timezone.utc)
     provider.last_error = None
 
     for item in norm_items:
@@ -79,7 +79,7 @@ def synchronize_provider(provider_id: str, db: Session) -> Dict[str, Any]:
             existing.difficulty = item.difficulty_level
             existing.estimated_duration_mins = item.estimated_duration_mins
             existing.dedup_hash = item.dedup_hash
-            existing.last_verified_at = datetime.utcnow()
+            existing.last_verified_at = datetime.now(timezone.utc)
             existing.role_relevance = role_rel
             existing.provider_external_id = item.provider_external_id
             existing.verification_level = item.verification_level
@@ -102,7 +102,7 @@ def synchronize_provider(provider_id: str, db: Session) -> Dict[str, Any]:
                 access_level=item.access_level,
                 source_format=item.source_format,
                 dedup_hash=item.dedup_hash,
-                last_verified_at=datetime.utcnow(),
+                last_verified_at=datetime.now(timezone.utc),
                 role_relevance=role_rel,
                 provider_external_id=item.provider_external_id,
                 verification_level=item.verification_level,

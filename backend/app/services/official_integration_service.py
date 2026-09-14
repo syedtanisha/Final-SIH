@@ -1,6 +1,6 @@
 import logging
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from ..models.models import OfficialSource, LearningResource, Competency, ResourceCompetencyMapping
@@ -76,7 +76,7 @@ def seed_official_sources(db: Session) -> List[OfficialSource]:
                 authentication_required=s_data["authentication_required"],
                 access_level=s_data["access_level"],
                 enabled=True,
-                last_checked_at=datetime.utcnow()
+                last_checked_at=datetime.now(timezone.utc)
             )
             db.add(source_obj)
             db.commit()
@@ -149,7 +149,7 @@ def refresh_official_sources(db: Session, target_source_ids: Optional[List[str]]
                     # Idempotent update
                     existing_resource.dedup_hash = dedup_hash
                     existing_resource.provenance_type = norm_item["provenance_type"]
-                    existing_resource.last_verified_at = datetime.utcnow()
+                    existing_resource.last_verified_at = datetime.now(timezone.utc)
                     existing_resource.version = norm_item.get("version") or existing_resource.version
                     existing_resource.publication_date = norm_item.get("publication_date") or existing_resource.publication_date
                     existing_resource.source_id = source.id
@@ -176,7 +176,7 @@ def refresh_official_sources(db: Session, target_source_ids: Optional[List[str]]
                         publication_date=norm_item["publication_date"],
                         version=norm_item["version"],
                         dedup_hash=dedup_hash,
-                        last_verified_at=datetime.utcnow(),
+                        last_verified_at=datetime.now(timezone.utc),
                         role_relevance=norm_item["role_relevance"]
                     )
                     db.add(new_resource)
@@ -193,7 +193,7 @@ def refresh_official_sources(db: Session, target_source_ids: Optional[List[str]]
 
                     summary["items_ingested"] += 1
 
-            source.last_checked_at = datetime.utcnow()
+            source.last_checked_at = datetime.now(timezone.utc)
             db.commit()
         except Exception as e:
             db.rollback()

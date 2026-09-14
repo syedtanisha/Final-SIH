@@ -84,12 +84,9 @@ def test_evaluate_baseline_submission_and_competency_initialization():
         db_session.commit()
         db_session.refresh(user)
 
-        # Ensure competencies exist in DB
-        if db_session.query(Competency).count() == 0:
-            from app.data.seed_data import COMPETENCIES_SEED
-            for c in COMPETENCIES_SEED:
-                db_session.add(Competency(**c))
-            db_session.commit()
+        # Ensure initial seed data exists in DB
+        from app.main import seed_initial_data
+        seed_initial_data()
 
         # Load baseline assessment data for user
         import anyio

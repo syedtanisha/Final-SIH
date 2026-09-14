@@ -1,7 +1,10 @@
 from sqlalchemy import Column, Integer, String, Float, Text, Boolean, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from ..db.database import Base
+
+def utc_now():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class User(Base):
     __tablename__ = "users"
@@ -14,7 +17,7 @@ class User(Base):
     department = Column(String(255), default="MoSPI")
     organization = Column(String(255), default="Government of India")
     role = Column(String(50), default="user")  # 'user', 'trainer', 'admin'
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     # Relationships
     competencies = relationship("UserCompetency", back_populates="user", cascade="all, delete-orphan")
@@ -41,7 +44,7 @@ class BaselineAssignment(Base):
     total_questions = Column(Integer, default=9)
     status = Column(String(50), default="assigned")  # 'assigned', 'submitted'
     score = Column(Float, nullable=True)
-    assigned_at = Column(DateTime, default=datetime.utcnow)
+    assigned_at = Column(DateTime, default=utc_now)
     submitted_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="baseline_assignments")
@@ -57,7 +60,7 @@ class Competency(Base):
     description = Column(Text, nullable=True)
     required_level = Column(Float, default=80.0)  # Benchmark target percentage
     weight = Column(Float, default=1.0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     user_competencies = relationship("UserCompetency", back_populates="competency")
     resource_mappings = relationship("ResourceCompetencyMapping", back_populates="competency")
@@ -70,7 +73,7 @@ class UserCompetency(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     competency_id = Column(Integer, ForeignKey("competencies.id", ondelete="CASCADE"), nullable=False, index=True)
     current_level = Column(Float, default=0.0)  # percentage: 0.0 to 100.0
-    last_assessed_at = Column(DateTime, default=datetime.utcnow)
+    last_assessed_at = Column(DateTime, default=utc_now)
     assessment_source = Column(String(50), default="initial")
 
     user = relationship("User", back_populates="competencies")
@@ -92,7 +95,7 @@ class OfficialSource(Base):
     authentication_required = Column(Boolean, default=False)
     access_level = Column(String(50), default="PUBLIC")  # 'PUBLIC', 'REGISTERED', 'RESTRICTED', 'METADATA_ONLY'
     enabled = Column(Boolean, default=True)
-    last_checked_at = Column(DateTime, default=datetime.utcnow)
+    last_checked_at = Column(DateTime, default=utc_now)
 
     resources = relationship("LearningResource", back_populates="official_source")
 
@@ -113,7 +116,7 @@ class LearningResource(Base):
     reference_period = Column(String(100), nullable=True)
     thumbnail_url = Column(String(1000), nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     # Official Integration Layer Extensions
     source_id = Column(Integer, ForeignKey("official_sources.id", ondelete="SET NULL"), nullable=True)
@@ -122,7 +125,7 @@ class LearningResource(Base):
     publication_date = Column(String(100), nullable=True)
     version = Column(String(50), nullable=True)
     dedup_hash = Column(String(255), unique=True, index=True, nullable=True)
-    last_verified_at = Column(DateTime, default=datetime.utcnow)
+    last_verified_at = Column(DateTime, default=utc_now)
     role_relevance = Column(String(255), nullable=True)
     provider_external_id = Column(String(100), nullable=True)
     verification_level = Column(String(50), default="PORTAL_VERIFIED")  # 'PORTAL_VERIFIED', 'PAGE_VERIFIED', 'RESOURCE_VERIFIED', 'UNVERIFIED'
@@ -154,7 +157,7 @@ class Document(Base):
     file_size_bytes = Column(Integer, default=0)
     extracted_text = Column(Text, nullable=False)
     character_count = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     # Phase 4 Extensions
     content_hash = Column(String(64), index=True, nullable=True)
@@ -182,7 +185,7 @@ class ContentChunk(Base):
     chunk_text = Column(Text, nullable=False)
     character_count = Column(Integer, default=0)
     token_count_approx = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     document = relationship("Document", back_populates="chunks")
 
@@ -199,7 +202,7 @@ class Quiz(Base):
     difficulty = Column(String(50), default="Intermediate")
     total_questions = Column(Integer, default=5)
     time_limit_mins = Column(Integer, default=15)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     # Phase 4 Extensions
     purpose = Column(String(50), default="SELF_ASSESSMENT")  # 'PRACTICE', 'SELF_ASSESSMENT', 'TRAINER_ASSESSMENT', 'POST_TRAINING'
@@ -249,7 +252,7 @@ class QuizAttempt(Base):
     competency_score_after = Column(Float, default=0.0)
     competency_delta = Column(Float, default=0.0)
     ai_qualitative_feedback = Column(Text, nullable=True)
-    completed_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, default=utc_now)
 
     # Phase 4 Extensions
     status = Column(String(50), default="EVALUATED")  # 'ASSIGNED', 'IN_PROGRESS', 'SUBMITTED', 'EVALUATED'
@@ -269,9 +272,9 @@ class UserResourceProgress(Base):
     status = Column(String(50), default="NOT_STARTED")  # 'NOT_STARTED', 'IN_PROGRESS', 'COMPLETED'
     progress_percentage = Column(Float, default=0.0)
     time_spent_mins = Column(Integer, default=0)
-    started_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=utc_now)
     completed_at = Column(DateTime, nullable=True)
-    last_accessed_at = Column(DateTime, default=datetime.utcnow)
+    last_accessed_at = Column(DateTime, default=utc_now)
     evidence_processed = Column(Boolean, default=False)
     evidence_key = Column(String(255), unique=True, index=True, nullable=True)
 
@@ -292,7 +295,7 @@ class LearningProgressHistory(Base):
     new_score = Column(Float, nullable=False)
     delta = Column(Float, nullable=False)
     evidence_key = Column(String(255), unique=True, index=True, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     user = relationship("User", back_populates="progress_records")
     competency = relationship("Competency")
@@ -306,9 +309,9 @@ class ChatSession(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String(255), nullable=False, default="Capacity Building Assistant Session")
     status = Column(String(50), default="active")  # 'active', 'deleted', 'archived'
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
-    last_message_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now)
+    last_message_at = Column(DateTime, default=utc_now)
 
     user = relationship("User", back_populates="chat_sessions")
     messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
@@ -327,7 +330,7 @@ class ChatMessage(Base):
     retrieval_used = Column(Boolean, default=False)
     retrieved_chunk_ids = Column(Text, nullable=True)  # JSON string of source references
     competency_context_used = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     session = relationship("ChatSession", back_populates="messages")
     user = relationship("User")
