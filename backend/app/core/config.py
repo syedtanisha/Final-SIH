@@ -1,4 +1,5 @@
 import urllib.parse
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
@@ -13,6 +14,7 @@ class Settings(BaseSettings):
     DATABASE_PORT: Optional[str] = "5432"
     DATABASE_NAME: Optional[str] = "postgres"
     DATABASE_URL_OVERRIDE: Optional[str] = None
+    DATABASE_URL_RAW: Optional[str] = Field(default=None, alias="DATABASE_URL")
 
     # Exact token expiration & security variables from .env
     ACCESS_EXPIRETIME_MINUTES: int = 60
@@ -56,16 +58,19 @@ class Settings(BaseSettings):
 
     @property
     def DATABASE_URL(self) -> str:
-        if self.DATABASE_URL_OVERRIDE:
-            return self.DATABASE_URL_OVERRIDE
-        if self.DATABASE_USERNAME and self.DATABASE_PASSWORD and self.DATABASE_HOSTNAME:
+        url = self.DATABASE_URL_OVERRIDE or self.DATABASE_URL_RAW
+        if not url and self.DATABASE_USERNAME and self.DATABASE_PASSWORD and self.DATABASE_HOSTNAME:
             encoded_password = urllib.parse.quote_plus(self.DATABASE_PASSWORD)
-            return (
+            url = (
                 f"postgresql://{self.DATABASE_USERNAME}:{encoded_password}@"
                 f"{self.DATABASE_HOSTNAME}:{self.DATABASE_PORT or '5432'}/"
                 f"{self.DATABASE_NAME or 'postgres'}"
             )
-        return "sqlite:///./statlearn.db"
+        if not url:
+            return "sqlite:///./statlearn.db"
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        return url
 
     @property
     def ACCESS_TOKEN_EXPIRE_MINUTES(self) -> int:
